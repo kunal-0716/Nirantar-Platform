@@ -97,7 +97,7 @@ export const DecideTaskParams = zod.object({
 })
 
 export const DecideTaskBody = zod.object({
-  "decision": zod.enum(['DISMISS', 'ACT', 'ESCALATE', 'LOG_CONTACT', 'PLAN_RETRY']),
+  "decision": zod.enum(['DISMISS', 'ACT', 'ESCALATE', 'LOG_CONTACT', 'PLAN_RETRY', 'RESOLVE', 'RETURN']),
   "rationale": zod.string().nullish()
 })
 

@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import {
   CreateActionBody,
   CreateCaseEventBody,
@@ -38,6 +38,35 @@ import {
   type Scenario,
 } from "../lib/nirantar";
 
+const requireRole = (allowedRoles: string[]) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const role = req.headers["x-nirantar-role"] as string;
+    if (!role || !allowedRoles.includes(role)) {
+      res.status(403).json({ error: `Access denied. Requires one of: ${allowedRoles.join(', ')}` });
+      return;
+    }
+    next();
+  };
+};
+
+const requireParticipantOwnership = (req: Request, res: Response, next: NextFunction) => {
+  const role = req.headers["x-nirantar-role"] as string;
+  if (role === "PARTICIPANT") {
+    const activeId = req.headers["x-nirantar-participant-id"] as string;
+    const requestedId = req.params.participantId || req.body.participantId;
+    if (requestedId && activeId !== requestedId) {
+      res.status(403).json({ error: "Access denied. Participant ID mismatch." });
+      return;
+    }
+  }
+  next();
+};
+
+const LIAISON = "LIAISON";
+const COUNSELLOR = "COUNSELLOR";
+const SUPERVISOR = "SUPERVISOR";
+const WORKERS = [LIAISON, COUNSELLOR, SUPERVISOR];
+
 const router: IRouter = Router();
 
 router.get("/workspace", async (req, res): Promise<void> => {
@@ -45,7 +74,7 @@ router.get("/workspace", async (req, res): Promise<void> => {
   res.json(GetWorkspaceResponse.parse(state.workspace));
 });
 
-router.get("/tasks", async (req, res): Promise<void> => {
+router.get("/tasks", requireRole(WORKERS), async (req, res): Promise<void> => {
   const parsedQuery = ListTasksQueryParams.safeParse(req.query);
   if (!parsedQuery.success) {
     res.status(400).json({ error: parsedQuery.error.message });
@@ -53,16 +82,21 @@ router.get("/tasks", async (req, res): Promise<void> => {
   }
   const state = await getState();
   const filter = parsedQuery.data.filter;
-  const tasks = state.tasks.filter((task) => {
+  const role = req.headers["x-nirantar-role"] as string;
+  const workerId = role.toLowerCase() + "-01";
+  let tasks = state.tasks.filter((task) => {
     if (filter === "unowned") return task.owner === null && task.status !== "CLOSED";
-    if (filter === "mine") return task.owner === "R. Sen" && task.status !== "CLOSED";
+    if (filter === "mine") return task.owner === workerId && task.status !== "CLOSED";
     if (filter === "escalated") return task.status === "ESCALATED";
     return true;
   });
+  if (role !== "SUPERVISOR") {
+    tasks = tasks.filter((t) => t.assignedWorker === workerId);
+  }
   res.json(ListTasksResponse.parse(tasks));
 });
 
-router.post("/tasks/:taskId/ownership", async (req, res): Promise<void> => {
+router.post("/tasks/:taskId/ownership", requireRole(WORKERS), async (req, res): Promise<void> => {
   const params = TakeTaskOwnershipParams.safeParse(req.params);
   const body = TakeTaskOwnershipBody.safeParse(req.body);
   if (!params.success || !body.success) {
@@ -75,11 +109,21 @@ router.post("/tasks/:taskId/ownership", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Task not found" });
     return;
   }
-  task.owner = body.data.owner;
+  const role = req.headers["x-nirantar-role"] as string;
+  if (task.taskType === "ATYPICAL_CHANGE" && role === "LIAISON") {
+    res.status(403).json({ error: "Liaisons cannot access clinical tasks." });
+    return;
+  }
+  const workerId = role.toLowerCase() + "-01";
+  if (role !== "SUPERVISOR" && task.assignedWorker !== workerId) {
+    res.status(403).json({ error: "Cannot take ownership of an unassigned task." });
+    return;
+  }
+  task.owner = workerId; // enforce synthetic identity
   task.status = "OWNED";
   const participant = state.participants[task.participantId];
   if (participant) {
-    participant.signal.owner = body.data.owner;
+    participant.signal.owner = workerId;
     participant.signal.actionLocked = false;
   }
   addAudit(state, body.data.owner, `Took ownership of ${task.pseudonym}`);
@@ -88,7 +132,7 @@ router.post("/tasks/:taskId/ownership", async (req, res): Promise<void> => {
   res.json(TakeTaskOwnershipResponse.parse(task));
 });
 
-router.post("/tasks/:taskId/decision", async (req, res): Promise<void> => {
+router.post("/tasks/:taskId/decision", requireRole(WORKERS), async (req, res): Promise<void> => {
   const params = DecideTaskParams.safeParse(req.params);
   const body = DecideTaskBody.safeParse(req.body);
   if (!params.success || !body.success) {
@@ -101,15 +145,26 @@ router.post("/tasks/:taskId/decision", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Task not found" });
     return;
   }
+  const role = req.headers["x-nirantar-role"] as string;
+  if (task.taskType === "ATYPICAL_CHANGE" && role === "LIAISON") {
+    res.status(403).json({ error: "Liaisons cannot access clinical tasks." });
+    return;
+  }
   if (body.data.decision === "ACT" && !task.owner) {
     res.status(409).json({ error: "Task must have an owner before an action decision can be recorded" });
     return;
   }
-  task.status = body.data.decision === "ESCALATE"
-    ? "ESCALATED"
-    : body.data.decision === "ACT"
-      ? "OWNED"
-      : "CLOSED";
+  if (body.data.decision === "RETURN") {
+    task.status = "OPEN";
+    task.owner = null;
+  } else if (body.data.decision === "ESCALATE") {
+    task.status = "ESCALATED";
+    task.owner = null;
+  } else if (body.data.decision === "ACT") {
+    task.status = "OWNED";
+  } else {
+    task.status = "CLOSED";
+  }
   task.escalationReason = body.data.rationale ?? task.escalationReason;
   const participant = state.participants[task.participantId];
   if (participant) {
@@ -128,13 +183,18 @@ router.post("/tasks/:taskId/decision", async (req, res): Promise<void> => {
   res.json(DecideTaskResponse.parse(task));
 });
 
-router.get("/participants", async (_req, res): Promise<void> => {
+router.get("/participants", requireRole(WORKERS), async (req, res): Promise<void> => {
+  const role = req.headers["x-nirantar-role"] as string;
+  const workerId = role.toLowerCase() + "-01";
   const state = await getState();
-  const participants = Object.values(state.participants).map((item) => item.summary);
+  let participants = Object.values(state.participants).map((item) => item.summary);
+  if (role !== "SUPERVISOR") {
+    participants = participants.filter((p) => p.assignedWorker === workerId);
+  }
   res.json(ListParticipantsResponse.parse(participants));
 });
 
-router.get("/participants/:participantId/continuity", async (req, res): Promise<void> => {
+router.get("/participants/:participantId/continuity", requireParticipantOwnership, async (req, res): Promise<void> => {
   const params = GetParticipantContinuityParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -144,6 +204,12 @@ router.get("/participants/:participantId/continuity", async (req, res): Promise<
   const participant = state.participants[params.data.participantId];
   if (!participant) {
     res.status(404).json({ error: "Participant not found" });
+    return;
+  }
+  const role = req.headers["x-nirantar-role"] as string;
+  const workerId = role.toLowerCase() + "-01";
+  if (role !== "PARTICIPANT" && role !== "SUPERVISOR" && participant.summary.assignedWorker !== workerId) {
+    res.status(403).json({ error: "Participant is not in your assigned caseload." });
     return;
   }
   res.json(GetParticipantContinuityResponse.parse({
@@ -156,7 +222,7 @@ router.get("/participants/:participantId/continuity", async (req, res): Promise<
   }));
 });
 
-router.post("/participants/:participantId/events", async (req, res): Promise<void> => {
+router.post("/participants/:participantId/events", requireRole([LIAISON, SUPERVISOR]), async (req, res): Promise<void> => {
   const params = CreateCaseEventParams.safeParse(req.params);
   const body = CreateCaseEventBody.safeParse(req.body);
   if (!params.success || !body.success) {
@@ -167,6 +233,12 @@ router.post("/participants/:participantId/events", async (req, res): Promise<voi
   const participant = state.participants[params.data.participantId];
   if (!participant) {
     res.status(404).json({ error: "Participant not found" });
+    return;
+  }
+  const role = req.headers["x-nirantar-role"] as string;
+  const workerId = role.toLowerCase() + "-01";
+  if (role !== "SUPERVISOR" && participant.summary.assignedWorker !== workerId) {
+    res.status(403).json({ error: "Cannot create events for an unassigned participant." });
     return;
   }
   const event: CaseEvent = {
@@ -191,7 +263,7 @@ router.post("/participants/:participantId/events", async (req, res): Promise<voi
   res.status(201).json(CreateCaseEventResponse.parse(event));
 });
 
-router.post("/actions", async (req, res): Promise<void> => {
+router.post("/actions", requireRole(WORKERS), async (req, res): Promise<void> => {
   const body = CreateActionBody.safeParse(req.body);
   if (!body.success) {
     res.status(400).json({ error: body.error.message });
@@ -202,6 +274,11 @@ router.post("/actions", async (req, res): Promise<void> => {
   const task = state.tasks.find((item) => item.id === body.data.taskId);
   if (!participant || !task || task.participantId !== body.data.participantId) {
     res.status(404).json({ error: "Participant or task not found" });
+    return;
+  }
+  const role = req.headers["x-nirantar-role"] as string;
+  if (task.taskType === "ATYPICAL_CHANGE" && role === "LIAISON") {
+    res.status(403).json({ error: "Liaisons cannot record clinical actions on atypical tasks." });
     return;
   }
   if (task.status === "CLOSED") {
@@ -245,7 +322,16 @@ router.post("/actions", async (req, res): Promise<void> => {
   res.status(201).json(CreateActionResponse.parse(action));
 });
 
-router.post("/participant/checkins", async (req, res): Promise<void> => {
+router.post("/participant/checkins", requireParticipantOwnership, async (req, res): Promise<void> => {
+  const parsed = SubmitParticipantCheckinBody.safeParse(req.body);
+  if (parsed.success) {
+    const state = await getState();
+    const p = state.participants[parsed.data.participantId];
+    if (p && p.summary.enrollmentState !== 'ACTIVE') {
+      res.status(403).json({ error: "Participant must complete enrollment and consent before submitting check-ins." });
+      return;
+    }
+  }
   const body = SubmitParticipantCheckinBody.safeParse(req.body);
   if (!body.success) {
     res.status(400).json({ error: body.error.message });
@@ -339,7 +425,7 @@ router.post("/simulation", async (req, res): Promise<void> => {
   res.json(ControlSimulationResponse.parse(state.workspace));
 });
 
-router.post("/audit/verify", async (req, res): Promise<void> => {
+router.post("/audit/verify", requireRole([SUPERVISOR]), async (req, res): Promise<void> => {
   const body = VerifyAuditBody.safeParse(req.body ?? {});
   if (!body.success) {
     res.status(400).json({ error: body.error.message });
@@ -353,6 +439,52 @@ router.post("/audit/verify", async (req, res): Promise<void> => {
   addAudit(state, "Admin", `Audit verification ${result.status}`);
   await saveState(state);
   res.json(VerifyAuditResponse.parse(result));
+});
+
+
+router.post("/participants/:participantId/settings", requireParticipantOwnership, async (req, res): Promise<void> => {
+  const participantId = String(req.params.participantId);
+  const { consentStatus, contactRestriction } = req.body;
+  const state = await getState();
+  const p = state.participants[participantId];
+  if (!p) {
+    res.status(404).json({ error: "Participant not found" });
+    return;
+  }
+  
+  if (consentStatus === "GRANTED") {
+    p.summary.consentStatus = "GRANTED";
+    p.summary.enrollmentState = "ACTIVE";
+  }
+  if (contactRestriction) {
+    p.summary.contactRestriction = contactRestriction;
+  }
+  
+  // Create a settings update event
+  p.events.unshift({
+    id: `evt-${Date.now()}`,
+    label: "Settings updated",
+    eventType: "CONSENT_AND_SAFETY",
+    status: "Recorded",
+    significance: 1,
+    dateLabel: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
+  });
+  
+  await saveState(state);
+  await recalculateWorkspace(state);
+  res.json(p.summary);
+});
+
+
+router.get("/participants/:participantId/settings", requireParticipantOwnership, async (req, res): Promise<void> => {
+  const participantId = String(req.params.participantId);
+  const state = await getState();
+  const p = state.participants[participantId];
+  if (!p) {
+    res.status(404).json({ error: "Participant not found" });
+    return;
+  }
+  res.json(p.summary);
 });
 
 export default router;

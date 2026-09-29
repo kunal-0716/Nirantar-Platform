@@ -140,6 +140,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ContinuityView"
+
+  /participants/{participantId}/settings:
+    post:
+      operationId: updateParticipantSettings
+      tags: [participants]
+      summary: Update participant settings and consent
+      parameters:
+        - $ref: "#/components/parameters/ParticipantId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [consentStatus, contactRestriction]
+              properties:
+                consentStatus:
+                  type: string
+                  enum: [PENDING, GRANTED]
+                contactRestriction:
+                  type: string
+      responses:
+        "200":
+          description: Settings updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ParticipantSummary"
+
   /participants/{participantId}/events:
     post:
       operationId: createCaseEvent
@@ -277,7 +306,7 @@ components:
         followUps: { type: integer }
     ParticipantSummary:
       type: object
-      required: [id, pseudonym, status, latestClass, latestScore, lastObservationLabel, contactRestriction]
+      required: [id, pseudonym, status, latestClass, latestScore, lastObservationLabel, contactRestriction, enrollmentState, consentStatus, checkinState, nextCheckinExpectedAt, assignedWorker]
       properties:
         id: { type: string }
         pseudonym: { type: string }
@@ -288,9 +317,18 @@ components:
         latestScore: { type: integer }
         lastObservationLabel: { type: string }
         contactRestriction: { type: string }
+        enrollmentState:
+          type: string
+          enum: [INVITED, ACTIVE]
+        consentStatus:
+          type: string
+          enum: [PENDING, GRANTED]
+        checkinState: { type: string }
+        nextCheckinExpectedAt: { type: string }
+        assignedWorker: { type: ["string", "null"] }
     ReviewTask:
       type: object
-      required: [id, taskType, attentionTier, ageLabel, participantId, pseudonym, owner, dueLabel, status, summary]
+      required: [id, taskType, attentionTier, ageLabel, participantId, pseudonym, owner, dueLabel, status, summary, assignedWorker]
       properties:
         id: { type: string }
         taskType:
@@ -303,6 +341,7 @@ components:
         participantId: { type: string }
         pseudonym: { type: string }
         owner: { type: ["string", "null"] }
+        assignedWorker: { type: ["string", "null"] }
         dueLabel: { type: string }
         status:
           type: string
@@ -321,7 +360,7 @@ components:
       properties:
         decision:
           type: string
-          enum: [DISMISS, ACT, ESCALATE, LOG_CONTACT, PLAN_RETRY]
+          enum: [DISMISS, ACT, ESCALATE, LOG_CONTACT, PLAN_RETRY, RESOLVE, RETURN]
         rationale: { type: ["string", "null"] }
     TrajectoryPoint:
       type: object

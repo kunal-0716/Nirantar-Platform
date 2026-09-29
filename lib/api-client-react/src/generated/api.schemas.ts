@@ -54,6 +54,8 @@ export const ParticipantSummaryLatestClass = {
 } as const;
 
 export interface ParticipantSummary {
+  enrollmentState: 'INVITED' | 'ACTIVE';
+  consentStatus: 'PENDING' | 'GRANTED';
   id: string;
   pseudonym: string;
   status: string;

@@ -15,4 +15,6 @@ export const TaskDecisionInputDecision = {
   ESCALATE: 'ESCALATE',
   LOG_CONTACT: 'LOG_CONTACT',
   PLAN_RETRY: 'PLAN_RETRY',
+  RESOLVE: 'RESOLVE',
+  RETURN: 'RETURN',
 } as const;

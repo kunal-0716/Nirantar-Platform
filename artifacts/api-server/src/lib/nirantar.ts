@@ -33,6 +33,9 @@ export type ParticipantSummary = {
   contactRestriction: string;
   checkinState: string;
   nextCheckinExpectedAt: string;
+  enrollmentState: "INVITED" | "ACTIVE";
+  consentStatus: "PENDING" | "GRANTED";
+  assignedWorker: string | null;
 };
 
 export type ReviewTask = {
@@ -48,6 +51,7 @@ export type ReviewTask = {
   summary: string;
   escalationReason: string | null;
   confidenceTier: string | null;
+  assignedWorker: string | null;
 };
 
 export type TrajectoryPoint = {
@@ -163,6 +167,7 @@ const makeParticipant = (
   id: string,
   pseudonym: string,
   scenario: Scenario,
+  assignedWorker: string | null = null,
 ): ParticipantState => {
   const isSilence = scenario === "silence";
   const isAtypical = scenario === "atypical";
@@ -194,6 +199,9 @@ const makeParticipant = (
       contactRestriction: isSilence ? "Discreet contact only" : "No automated contact",
       checkinState: isSilence ? "SILENCE_REVIEW" : "SCHEDULED",
       nextCheckinExpectedAt: new Date(new Date("2026-09-08T09:00:00Z").getTime() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+      enrollmentState: id === "p-04" ? "INVITED" : "ACTIVE",
+      consentStatus: id === "p-04" ? "PENDING" : "GRANTED",
+      assignedWorker,
     },
     observations: trajectory.flatMap((point, index) =>
       point.score === null
@@ -377,6 +385,7 @@ export function recalculateParticipant(
         summary: "Observed score is outside the event-adjusted expected band.",
         escalationReason: null,
         confidenceTier,
+        assignedWorker: participant.summary.assignedWorker,
       };
       state.tasks.push(task);
     } else {
@@ -416,9 +425,10 @@ export function hydrateState(state: NirantarState): NirantarState {
 
 export const initialState = (): NirantarState => {
   const participants = {
-    "p-01": makeParticipant("p-01", "P-01", "baseline"),
-    "p-02": makeParticipant("p-02", "P-02", "atypical"),
-    "p-03": makeParticipant("p-03", "P-03", "silence"),
+    "p-01": makeParticipant("p-01", "P-01", "baseline", "supervisor-01"),
+    "p-02": makeParticipant("p-02", "P-02", "atypical", "counsellor-01"),
+    "p-03": makeParticipant("p-03", "P-03", "silence", "liaison-01"),
+    "p-04": makeParticipant("p-04", "P-04", "baseline", "liaison-01"),
   };
   return {
     workspace: {
@@ -443,6 +453,7 @@ export const initialState = (): NirantarState => {
         summary: "Observed score is outside the event-adjusted expected band.",
         escalationReason: null,
         confidenceTier: "MODERATE CONFIDENCE",
+        assignedWorker: "counsellor-01",
       },
       {
         id: "task-silence",
@@ -457,6 +468,7 @@ export const initialState = (): NirantarState => {
         summary: "Two scheduled check-ins have no response.",
         escalationReason: "Contact Restricted",
         confidenceTier: "REVIEW REQUIRED",
+        assignedWorker: "liaison-01",
       },
       {
         id: "task-closed",
@@ -471,6 +483,7 @@ export const initialState = (): NirantarState => {
         summary: "Event verification recorded.",
         escalationReason: "Completed",
         confidenceTier: null,
+        assignedWorker: "supervisor-01",
       },
     ],
     auditRows: [
@@ -531,6 +544,7 @@ export function addAudit(state: NirantarState, actor: string, action: string): v
 
   for (const participantId of Object.keys(state.participants)) {
     const participant = state.participants[participantId];
+    if (participant.summary.enrollmentState !== 'ACTIVE') continue;
     if (!participant.summary.nextCheckinExpectedAt) continue;
 
     const expected = new Date(participant.summary.nextCheckinExpectedAt).getTime();
@@ -554,6 +568,7 @@ export function addAudit(state: NirantarState, actor: string, action: string): v
           summary: 'Expected check-in window missed. Non-response requires review.',
           escalationReason: participant.summary.contactRestriction !== 'No automated contact' ? 'Contact Restricted' : null,
           confidenceTier: 'REVIEW REQUIRED',
+          assignedWorker: participant.summary.assignedWorker,
         });
 
         participant.signal = {

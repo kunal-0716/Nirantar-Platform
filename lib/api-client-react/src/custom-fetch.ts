@@ -17,6 +17,15 @@ const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 
 let _baseUrl: string | null = null;
 let _authTokenGetter: AuthTokenGetter | null = null;
+let _roleGetter: (() => string | null) | null = null;
+export function setRoleGetter(getter: (() => string | null) | null): void {
+  _roleGetter = getter;
+}
+
+let _participantIdGetter: (() => string | null) | null = null;
+export function setParticipantIdGetter(getter: (() => string | null) | null): void {
+  _participantIdGetter = getter;
+}
 
 /**
  * Set a base URL that is prepended to every relative request URL
@@ -351,6 +360,20 @@ export async function customFetch<T = unknown>(
 
   // Attach bearer token when an auth getter is configured and no
   // Authorization header has been explicitly provided.
+  if (_roleGetter) {
+    const role = _roleGetter();
+    if (role) {
+      headers.set("x-nirantar-role", role);
+    }
+  }
+
+  if (_participantIdGetter) {
+    const pid = _participantIdGetter();
+    if (pid) {
+      headers.set("x-nirantar-participant-id", pid);
+    }
+  }
+
   if (_authTokenGetter && !headers.has("authorization")) {
     const token = await _authTokenGetter();
     if (token) {
