@@ -210,7 +210,8 @@ export const createCaseEventBodySignificanceMax = 3;
 export const CreateCaseEventBody = zod.object({
   "label": zod.string().min(1),
   "eventType": zod.string(),
-  "significance": zod.number().int().min(1).max(createCaseEventBodySignificanceMax)
+  "significance": zod.number().int().min(1).max(createCaseEventBodySignificanceMax),
+  "dateLabel": zod.string()
 })
 
 export const CreateCaseEventResponse = zod.object({

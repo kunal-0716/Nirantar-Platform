@@ -7,6 +7,8 @@
  */
 import type { ActionRecordFollowUpState } from './actionRecordFollowUpState';
 
+import type { ActionRecordFollowUpLifecycle } from './actionRecordFollowUpLifecycle';
+
 export interface ActionRecord {
   id: string;
   pathway: string;
@@ -14,5 +16,9 @@ export interface ActionRecord {
   followUpLabel: string;
   followUpDueLabel: string;
   followUpState: ActionRecordFollowUpState;
+  followUpLifecycle: ActionRecordFollowUpLifecycle;
+  followUpDueAt: string;
+  taskId: string;
+  createdAt: string;
   dateLabel: string;
 }

@@ -399,11 +399,12 @@ components:
         dateLabel: { type: string }
     CaseEventInput:
       type: object
-      required: [label, eventType, significance]
+      required: [label, eventType, significance, dateLabel]
       properties:
         label: { type: string, minLength: 1 }
         eventType: { type: string }
         significance: { type: integer, minimum: 1, maximum: 3 }
+        dateLabel: { type: string }
     ActionInput:
       type: object
       required: [taskId, participantId, pathway, outcome]
@@ -416,7 +417,7 @@ components:
         followUpDueLabel: { type: string }
     ActionRecord:
       type: object
-      required: [id, pathway, outcome, followUpLabel, followUpDueLabel, followUpState, dateLabel]
+      required: [id, pathway, outcome, followUpLabel, followUpDueLabel, followUpState, dateLabel, followUpLifecycle, followUpDueAt, taskId, createdAt]
       properties:
         id: { type: string }
         pathway: { type: string }

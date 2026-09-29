@@ -175,7 +175,7 @@ router.post("/participants/:participantId/events", async (req, res): Promise<voi
     eventType: body.data.eventType,
     status: "OCCURRED",
     significance: body.data.significance,
-    dateLabel: state.workspace.clockLabel.split(" · ")[0],
+    dateLabel: body.data.dateLabel,
   };
   participant.events.push(event);
   participant.timeline.push({

@@ -61,6 +61,8 @@ export interface ParticipantSummary {
   latestScore: number;
   lastObservationLabel: string;
   contactRestriction: string;
+  checkinState: string;
+  nextCheckinExpectedAt: string;
 }
 
 export type ReviewTaskTaskType = typeof ReviewTaskTaskType[keyof typeof ReviewTaskTaskType];
@@ -203,6 +205,14 @@ export interface CaseEvent {
   dateLabel: string;
 }
 
+export type ActionRecordFollowUpLifecycle = typeof ActionRecordFollowUpLifecycle[keyof typeof ActionRecordFollowUpLifecycle];
+export const ActionRecordFollowUpLifecycle = {
+  PENDING: "PENDING",
+  DUE: "DUE",
+  COMPLETED: "COMPLETED",
+  CLOSED: "CLOSED",
+} as const;
+
 export type ActionRecordFollowUpState = typeof ActionRecordFollowUpState[keyof typeof ActionRecordFollowUpState];
 
 
@@ -214,6 +224,10 @@ export const ActionRecordFollowUpState = {
 } as const;
 
 export interface ActionRecord {
+  createdAt: string;
+  taskId: string;
+  followUpDueAt: string;
+  followUpLifecycle: ActionRecordFollowUpLifecycle;
   id: string;
   pathway: string;
   outcome: string;
@@ -233,6 +247,7 @@ export interface ContinuityView {
 }
 
 export interface CaseEventInput {
+  dateLabel: string;
   /** @minLength 1 */
   label: string;
   eventType: string;

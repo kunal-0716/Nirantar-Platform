@@ -43,3 +43,5 @@ export * from './workspace';
 export * from './workspaceActiveRole';
 export * from './workspaceActiveScenario';
 export * from './workspaceCounts';
+
+export * from "./actionRecordFollowUpLifecycle";

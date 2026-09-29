@@ -1,0 +1,1 @@
+export type ActionRecordFollowUpLifecycle = "PENDING" | "DUE" | "COMPLETED" | "CLOSED";

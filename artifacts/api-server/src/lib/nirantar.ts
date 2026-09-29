@@ -17,6 +17,7 @@ export type FollowUpState =
 
 export type Workspace = {
   clockLabel: string;
+  simulationTime: string;
   activeRole: Role;
   activeScenario: Scenario;
   counts: { openTasks: number; unownedTasks: number; participants: number; followUps: number };
@@ -30,6 +31,8 @@ export type ParticipantSummary = {
   latestScore: number;
   lastObservationLabel: string;
   contactRestriction: string;
+  checkinState: string;
+  nextCheckinExpectedAt: string;
 };
 
 export type ReviewTask = {
@@ -189,6 +192,8 @@ const makeParticipant = (
       latestScore: trajectory.at(-1)?.score ?? 72,
       lastObservationLabel: isSilence ? "Last valid observation · 27 Aug" : "10 Sep · 09:12",
       contactRestriction: isSilence ? "Discreet contact only" : "No automated contact",
+      checkinState: isSilence ? "SILENCE_REVIEW" : "SCHEDULED",
+      nextCheckinExpectedAt: new Date(new Date("2026-09-08T09:00:00Z").getTime() + 2 * 24 * 60 * 60 * 1000).toISOString(),
     },
     observations: trajectory.flatMap((point, index) =>
       point.score === null
@@ -417,7 +422,8 @@ export const initialState = (): NirantarState => {
   };
   return {
     workspace: {
-      clockLabel: "10 Sep 2026 · 09:12",
+      simulationTime: "2026-09-10T09:12:00Z",
+      clockLabel: "10 Sep 2026 � 09:12",
       activeRole: "COUNSELLOR",
       activeScenario: "atypical",
       counts: { openTasks: 2, unownedTasks: 2, participants: 3, followUps: 0 },
@@ -508,4 +514,91 @@ export function addAudit(state: NirantarState, actor: string, action: string): v
   const previous = state.auditRows.at(-1)?.hash ?? "root";
   const sequence = (state.auditRows.at(-1)?.sequence ?? 0) + 1;
   state.auditRows.push({ sequence, actor, action, hash: `${previous.slice(-4)}…${sequence.toString(16).padStart(4, "0")}` });
+}export function evaluateTimeProgression(state: NirantarState, incrementMs: number): void {
+  const current = new Date(state.workspace.simulationTime).getTime();
+  const next = new Date(current + incrementMs);
+  state.workspace.simulationTime = next.toISOString();
+
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const d = next.getDate().toString().padStart(2, '0');
+  const m = months[next.getMonth()];
+  const y = next.getFullYear();
+  const hh = next.getHours().toString().padStart(2, '0');
+  const mm = next.getMinutes().toString().padStart(2, '0');
+  state.workspace.clockLabel = d + ' ' + m + ' ' + y + ' � ' + hh + ':' + mm;
+
+  const dateLabel = d + ' ' + m;
+
+  for (const participantId of Object.keys(state.participants)) {
+    const participant = state.participants[participantId];
+    if (!participant.summary.nextCheckinExpectedAt) continue;
+
+    const expected = new Date(participant.summary.nextCheckinExpectedAt).getTime();
+    if (next.getTime() > expected) {
+      const alreadyHasSilence = state.tasks.find(
+        (t) => t.participantId === participantId && t.taskType === 'SILENCE_REVIEW' && t.status !== 'CLOSED'
+      );
+
+      if (!alreadyHasSilence) {
+        const taskId = 'task-' + participantId + '-silence-' + Date.now();
+        state.tasks.push({
+          id: taskId,
+          taskType: 'SILENCE_REVIEW',
+          attentionTier: 'PRIORITY_REVIEW',
+          ageLabel: 'Just now',
+          participantId: participantId,
+          pseudonym: participant.summary.pseudonym,
+          owner: null,
+          dueLabel: 'Next working day',
+          status: 'OPEN',
+          summary: 'Expected check-in window missed. Non-response requires review.',
+          escalationReason: participant.summary.contactRestriction !== 'No automated contact' ? 'Contact Restricted' : null,
+          confidenceTier: 'REVIEW REQUIRED',
+        });
+
+        participant.signal = {
+          classification: 'SILENCE_REVIEW',
+          whatChanged: 'No response for scheduled check-in.',
+          context: 'Silence is uncertainty, not evidence of safety.',
+          confidenceTier: 'REVIEW REQUIRED',
+          confidenceFactors: ['Missed current window', 'Contact restriction active'],
+          actionLocked: false,
+          taskId: taskId,
+          owner: null,
+        };
+        participant.summary.latestClass = 'SILENCE_REVIEW';
+
+        participant.trajectory.push({
+          label: dateLabel,
+          score: null,
+          baseline: participant.trajectory.at(-1)?.baseline ?? 75,
+          lowerBand: participant.trajectory.at(-1)?.lowerBand ?? 65,
+          upperBand: participant.trajectory.at(-1)?.upperBand ?? 85,
+          classification: 'WITHIN_EXPECTED_RANGE',
+          missing: true,
+        });
+
+        participant.timeline.push({
+          id: participantId + '-missing-' + Date.now(),
+          label: 'Check-in missed',
+          kind: 'MISSING',
+          description: 'No response received by ' + dateLabel + '. Scheduled review generated.',
+          significance: null,
+        });
+      }
+
+      participant.summary.nextCheckinExpectedAt = new Date(expected + 7 * 24 * 60 * 60 * 1000).toISOString();
+    }
+  }
+
+  for (const task of state.tasks) {
+    if (task.status !== 'CLOSED') {
+       if (task.ageLabel === 'Just now') task.ageLabel = '1d';
+       else if (task.ageLabel === '1d') task.ageLabel = '2d';
+       else if (task.ageLabel === '2d') task.ageLabel = '3d';
+       else if (task.ageLabel.endsWith('h')) task.ageLabel = '1d';
+    }
+  }
+
+  recalculateWorkspace(state);
 }
