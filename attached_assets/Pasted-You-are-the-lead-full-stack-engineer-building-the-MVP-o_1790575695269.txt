@@ -1,0 +1,167 @@
+You are the lead full-stack engineer building the MVP of:
+
+NIRANTAR — Case-Aware Wellbeing Continuity Engine
+
+I have attached three authoritative project documents:
+
+1. NIRANTAR_FINAL_PRODUCT_BLUEPRINT.md
+2. NIRANTAR_UX_UI_BLUEPRINT.md
+3. NIRANTAR_VISUAL_DESIGN_SPEC.md
+
+These documents are the source of truth.
+
+Do NOT redesign the product.
+Do NOT change the Product North Star.
+Do NOT invent a different solution.
+Do NOT add features merely to make the project look complex.
+
+Your task is to build the actual working MVP according to these documents.
+
+FIRST:
+Read and understand all three documents before making implementation decisions.
+
+The central product loop MUST remain:
+
+CASE EVENT
+→ CHECK-IN
+→ PERSONAL TRAJECTORY
+→ CONTEXTUAL CHANGE
+→ UNCERTAINTY
+→ HUMAN REVIEW
+→ ACTION
+→ FOLLOW-UP
+
+The MVP must demonstrate this loop through real functioning software,
+not a static mockup.
+
+IMPORTANT REALISM RULES:
+
+- Use synthetic/demo data only.
+- Clearly distinguish simulated components.
+- Do not claim clinical diagnosis.
+- Do not claim clinical validation.
+- Do not invent real victim data.
+- Do not invent government APIs.
+- Do not pretend to have live government integration.
+- Do not create autonomous legal or clinical decisions.
+- Human review must remain central.
+
+IMPLEMENTATION:
+
+Use a practical architecture suitable for an AI-assisted student team.
+
+Implement:
+- responsive frontend
+- backend
+- database/storage
+- role-based access
+- participant check-ins
+- case management
+- case-event timeline
+- longitudinal wellbeing observations
+- personal baseline
+- contextual change detection
+- uncertainty
+- human review queue
+- action workflow
+- follow-up workflow
+- non-response handling
+- audit history
+- synthetic demonstration data
+
+For the intelligence layer, prefer transparent,
+explainable statistical/deterministic logic where appropriate.
+
+Do not create a meaningless black-box "AI risk score".
+
+The main visualization must communicate:
+
+PERSONAL TRAJECTORY
++
+CASE EVENTS
++
+CONTEXT
++
+CHANGE
++
+UNCERTAINTY
+
+Follow the attached UX/UI and Visual Design specifications precisely.
+
+The UI must look like a serious, domain-specific product.
+
+Avoid:
+- generic SaaS dashboard styling
+- excessive gradients
+- glassmorphism
+- glowing AI elements
+- meaningless KPI cards
+- excessive rounded cards
+- decorative AI imagery
+- generic chatbot interfaces
+- unnecessary animations
+
+The application must support these demo scenarios:
+
+SCENARIO A:
+stable baseline
+→ case event
+→ check-in
+→ event-consistent change
+→ monitored state
+
+SCENARIO B:
+stable baseline
+→ major case event
+→ check-in
+→ atypical change
+→ uncertainty
+→ human review
+→ action
+→ follow-up
+
+SCENARIO C:
+missed check-in
+→ non-response state
+→ safe human-review pathway
+
+The scenarios must be executable inside the application without editing
+source code manually.
+
+IMPORTANT FOR THIS FREE AGENT SESSION:
+
+Do NOT try to build every possible future feature.
+
+Prioritize:
+1. Core product workflow
+2. Functional data/state transitions
+3. Core change-detection mechanism
+4. Human-review workflow
+5. High-quality UI
+6. Demo reliability
+
+Build the MVP in coherent phases, but keep working toward a complete
+functional application.
+
+Before large implementation changes, inspect the existing project state
+and avoid creating duplicate files or conflicting architecture.
+
+After implementation:
+- run the app
+- test the main workflows
+- fix obvious errors
+- verify navigation
+- verify forms
+- verify state transitions
+- verify the main demo scenario
+- verify responsive behaviour
+
+When finished, report:
+- what was built
+- technology stack
+- current MVP capabilities
+- how to run it
+- demo entry point
+- known limitations
+
+START BY READING THE THREE ATTACHED DOCUMENTS AND THEN BUILD THE MVP.

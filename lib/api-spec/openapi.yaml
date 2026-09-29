@@ -1,0 +1,473 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: NIRANTAR synthetic continuity demo API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: workspace
+    description: Synthetic demo workspace
+  - name: tasks
+    description: Human review queue
+  - name: continuity
+    description: Participant continuity and event context
+  - name: actions
+    description: Human action and follow-up workflow
+  - name: participant
+    description: Participant-facing check-in workflow
+  - name: simulation
+    description: Demo simulation controls
+  - name: governance
+    description: Audit verification
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /workspace:
+    get:
+      operationId: getWorkspace
+      tags: [workspace]
+      summary: Get the current synthetic workspace
+      responses:
+        "200":
+          description: Workspace snapshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Workspace"
+  /tasks:
+    get:
+      operationId: listTasks
+      tags: [tasks]
+      summary: List human review tasks
+      parameters:
+        - name: filter
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [all, unowned, mine, escalated]
+            default: all
+      responses:
+        "200":
+          description: Review tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReviewTask"
+  /tasks/{taskId}/ownership:
+    post:
+      operationId: takeTaskOwnership
+      tags: [tasks]
+      summary: Take ownership of a review task
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OwnershipInput"
+      responses:
+        "200":
+          description: Updated task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewTask"
+  /tasks/{taskId}/decision:
+    post:
+      operationId: decideTask
+      tags: [tasks]
+      summary: Record a human review decision
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskDecisionInput"
+      responses:
+        "200":
+          description: Updated task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewTask"
+  /participants:
+    get:
+      operationId: listParticipants
+      tags: [continuity]
+      summary: List synthetic participants
+      responses:
+        "200":
+          description: Participant directory
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ParticipantSummary"
+  /participants/{participantId}/continuity:
+    get:
+      operationId: getParticipantContinuity
+      tags: [continuity]
+      summary: Get the participant continuity view
+      parameters:
+        - $ref: "#/components/parameters/ParticipantId"
+      responses:
+        "200":
+          description: Continuity view
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContinuityView"
+  /participants/{participantId}/events:
+    post:
+      operationId: createCaseEvent
+      tags: [continuity]
+      summary: Add a synthetic case event
+      parameters:
+        - $ref: "#/components/parameters/ParticipantId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CaseEventInput"
+      responses:
+        "201":
+          description: Created event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaseEvent"
+  /actions:
+    post:
+      operationId: createAction
+      tags: [actions]
+      summary: Record a human action and follow-up
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActionInput"
+      responses:
+        "201":
+          description: Created action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActionRecord"
+  /participant/checkins:
+    post:
+      operationId: submitParticipantCheckin
+      tags: [participant]
+      summary: Submit a synthetic participant check-in
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckinInput"
+      responses:
+        "201":
+          description: Recorded check-in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckinResult"
+  /simulation:
+    post:
+      operationId: controlSimulation
+      tags: [simulation]
+      summary: Advance or reset the synthetic demo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SimulationInput"
+      responses:
+        "200":
+          description: Updated workspace
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Workspace"
+  /audit/verify:
+    post:
+      operationId: verifyAudit
+      tags: [governance]
+      summary: Verify the synthetic audit chain
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuditVerifyInput"
+      responses:
+        "200":
+          description: Verification result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditVerification"
+components:
+  parameters:
+    TaskId:
+      name: taskId
+      in: path
+      required: true
+      schema:
+        type: string
+    ParticipantId:
+      name: participantId
+      in: path
+      required: true
+      schema:
+        type: string
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    Workspace:
+      type: object
+      required: [clockLabel, activeRole, activeScenario, counts]
+      properties:
+        clockLabel: { type: string }
+        activeRole:
+          type: string
+          enum: [CASE_LIAISON, COUNSELLOR, SUPERVISOR, ADMIN, PARTICIPANT]
+        activeScenario:
+          type: string
+          enum: [baseline, atypical, silence]
+        counts:
+          $ref: "#/components/schemas/WorkspaceCounts"
+    WorkspaceCounts:
+      type: object
+      required: [openTasks, unownedTasks, participants, followUps]
+      properties:
+        openTasks: { type: integer }
+        unownedTasks: { type: integer }
+        participants: { type: integer }
+        followUps: { type: integer }
+    ParticipantSummary:
+      type: object
+      required: [id, pseudonym, status, latestClass, latestScore, lastObservationLabel, contactRestriction]
+      properties:
+        id: { type: string }
+        pseudonym: { type: string }
+        status: { type: string }
+        latestClass:
+          type: string
+          enum: [WITHIN_EXPECTED_RANGE, EVENT_CONSISTENT_CHANGE, ATYPICAL_CHANGE, SILENCE_REVIEW]
+        latestScore: { type: integer }
+        lastObservationLabel: { type: string }
+        contactRestriction: { type: string }
+    ReviewTask:
+      type: object
+      required: [id, taskType, attentionTier, ageLabel, participantId, pseudonym, owner, dueLabel, status, summary]
+      properties:
+        id: { type: string }
+        taskType:
+          type: string
+          enum: [ATYPICAL_CHANGE, SILENCE_REVIEW, SAFETY_EVENT_REVIEW, CONCERN_RAISED]
+        attentionTier:
+          type: string
+          enum: [IMMEDIATE_ATTENTION, PRIORITY_REVIEW, ROUTINE_REVIEW]
+        ageLabel: { type: string }
+        participantId: { type: string }
+        pseudonym: { type: string }
+        owner: { type: ["string", "null"] }
+        dueLabel: { type: string }
+        status:
+          type: string
+          enum: [OPEN, OWNED, ESCALATED, CLOSED]
+        summary: { type: string }
+        escalationReason: { type: ["string", "null"] }
+        confidenceTier: { type: ["string", "null"] }
+    OwnershipInput:
+      type: object
+      required: [owner]
+      properties:
+        owner: { type: string, minLength: 1 }
+    TaskDecisionInput:
+      type: object
+      required: [decision]
+      properties:
+        decision:
+          type: string
+          enum: [DISMISS, ACT, ESCALATE, LOG_CONTACT, PLAN_RETRY]
+        rationale: { type: ["string", "null"] }
+    TrajectoryPoint:
+      type: object
+      required: [label, score, baseline, lowerBand, upperBand, classification, missing]
+      properties:
+        label: { type: string }
+        score: { type: ["integer", "null"] }
+        baseline: { type: integer }
+        lowerBand: { type: integer }
+        upperBand: { type: integer }
+        classification:
+          type: string
+          enum: [WITHIN_EXPECTED_RANGE, EVENT_CONSISTENT_CHANGE, ATYPICAL_CHANGE]
+        missing: { type: boolean }
+    TimelineItem:
+      type: object
+      required: [id, label, kind, description]
+      properties:
+        id: { type: string }
+        label: { type: string }
+        kind:
+          type: string
+          enum: [EVENT, INTERVENTION, FOLLOW_UP, MISSING]
+        description: { type: string }
+        significance: { type: ["integer", "null"] }
+    ContinuityView:
+      type: object
+      required: [participant, trajectory, timeline, signal, events, interventions]
+      properties:
+        participant:
+          $ref: "#/components/schemas/ParticipantSummary"
+        trajectory:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrajectoryPoint"
+        timeline:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimelineItem"
+        signal:
+          $ref: "#/components/schemas/SignalEvidence"
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/CaseEvent"
+        interventions:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActionRecord"
+    SignalEvidence:
+      type: object
+      required: [classification, whatChanged, context, confidenceTier, confidenceFactors, actionLocked, taskId]
+      properties:
+        classification:
+          type: string
+          enum: [WITHIN_EXPECTED_RANGE, EVENT_CONSISTENT_CHANGE, ATYPICAL_CHANGE, SILENCE_REVIEW]
+        whatChanged: { type: string }
+        context: { type: string }
+        confidenceTier: { type: string }
+        confidenceFactors:
+          type: array
+          items: { type: string }
+        actionLocked: { type: boolean }
+        taskId: { type: ["string", "null"] }
+        owner: { type: ["string", "null"] }
+    CaseEvent:
+      type: object
+      required: [id, label, eventType, status, significance, dateLabel]
+      properties:
+        id: { type: string }
+        label: { type: string }
+        eventType: { type: string }
+        status: { type: string }
+        significance: { type: integer }
+        dateLabel: { type: string }
+    CaseEventInput:
+      type: object
+      required: [label, eventType, significance]
+      properties:
+        label: { type: string, minLength: 1 }
+        eventType: { type: string }
+        significance: { type: integer, minimum: 1, maximum: 3 }
+    ActionInput:
+      type: object
+      required: [taskId, participantId, pathway, outcome]
+      properties:
+        taskId: { type: string }
+        participantId: { type: string }
+        pathway: { type: string }
+        outcome: { type: string }
+        followUpLabel: { type: string }
+        followUpDueLabel: { type: string }
+    ActionRecord:
+      type: object
+      required: [id, pathway, outcome, followUpLabel, followUpDueLabel, followUpState, dateLabel]
+      properties:
+        id: { type: string }
+        pathway: { type: string }
+        outcome: { type: string }
+        followUpLabel: { type: string }
+        followUpDueLabel: { type: string }
+        followUpState:
+          type: string
+          enum: [RETURNED_TOWARD_BASELINE, PERSISTENT, CHANGED_AGAIN, UNKNOWN]
+        dateLabel: { type: string }
+    CheckinInput:
+      type: object
+      required: [participantId, responses, safetyResponse]
+      properties:
+        participantId: { type: string }
+        responses:
+          type: array
+          minItems: 5
+          maxItems: 5
+          items: { type: integer, minimum: 0, maximum: 5 }
+        safetyResponse:
+          type: string
+          enum: [YES, NO, PREFER_NOT_TO_SAY]
+    CheckinResult:
+      type: object
+      required: [message, score, classification]
+      properties:
+        message: { type: string }
+        score: { type: integer }
+        classification:
+          type: string
+          enum: [WITHIN_EXPECTED_RANGE, EVENT_CONSISTENT_CHANGE, ATYPICAL_CHANGE]
+    SimulationInput:
+      type: object
+      required: [action]
+      properties:
+        action:
+          type: string
+          enum: [ADVANCE_CLOCK, RESET, LOAD_BASELINE, LOAD_ATYPICAL, LOAD_SILENCE]
+    AuditVerifyInput:
+      type: object
+      properties:
+        simulateTamper: { type: boolean }
+    AuditVerification:
+      type: object
+      required: [status, message, checkedRows, firstFailingSequence]
+      properties:
+        status:
+          type: string
+          enum: [PASS, FAIL]
+        message: { type: string }
+        checkedRows: { type: integer }
+        firstFailingSequence: { type: ["integer", "null"] }
+

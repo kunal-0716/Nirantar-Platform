@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Nirantar"
+description = "A synthetic case-aware wellbeing continuity workspace for support teams to review contextual changes, respond safely to missed check-ins, and document human follow-up."
+version = "1.0.0"
+id = "artifacts/nirantar"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19672
+
+[services.development]
+run = "pnpm --filter @workspace/nirantar run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/nirantar", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/nirantar/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19672"
+BASE_PATH = "/"

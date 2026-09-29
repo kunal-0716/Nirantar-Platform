@@ -1,0 +1,217 @@
+Now implement ONLY the highest-priority unfinished task identified in
+your implementation-status report.
+
+TASK:
+
+Make the existing P-02 demo scenario work as a REAL persisted
+end-to-end workflow:
+
+CASE EVENT
+→ PARTICIPANT CHECK-IN
+→ RECALCULATED PERSONAL/CONTEXTUAL TRAJECTORY
+→ UNCERTAINTY / CLASSIFICATION
+→ OWNED HUMAN REVIEW
+→ ACTION
+→ STRUCTURED FOLLOW-UP
+
+IMPORTANT:
+
+Do NOT rebuild the application.
+
+Do NOT change the architecture.
+
+Do NOT create duplicate systems.
+
+Do NOT redesign the product.
+
+Do NOT add unrelated features.
+
+Use the existing:
+- API
+- PostgreSQL/Drizzle state
+- generated client
+- existing routes
+- existing continuity UI
+- existing synthetic data model
+
+Replace the current fixture-driven behaviour ONLY where necessary for
+this workflow to become genuinely state-driven.
+
+==================================================
+1. CASE EVENT
+==================================================
+
+Use the existing case-event mechanism.
+
+When a valid event is added:
+
+- persist it
+- update the participant/case state
+- ensure the event is available to the detector
+- trigger recalculation of the participant's contextual state
+
+Do not invent external government integration.
+
+==================================================
+2. CHECK-IN
+==================================================
+
+Use the existing check-in flow.
+
+When the participant submits a check-in:
+
+- persist the observation
+- associate it with the correct participant
+- update the longitudinal trajectory
+- use the new observation in subsequent calculations
+
+Remove the hardcoded dependency on p-01 ONLY where required for this
+workflow to function correctly.
+
+==================================================
+3. CHANGE DETECTION
+==================================================
+
+Implement the detector using the existing intended architecture.
+
+It must use the available:
+
+- personal history/baseline
+- recent observations
+- case-event context
+- configured expected range
+- deviation
+- persistence/data sufficiency
+- uncertainty/confidence factors
+
+The result should be an explainable attention/classification result.
+
+Do NOT create a fake black-box AI score.
+
+Do NOT claim diagnosis or clinical prediction.
+
+Use transparent statistical/deterministic logic appropriate for the MVP.
+
+==================================================
+4. REVIEW TASK
+==================================================
+
+When the detector determines that human attention is required:
+
+- create/update the appropriate persisted review task
+- attach the relevant participant/case context
+- attach evidence needed by the reviewer
+- preserve uncertainty
+- ensure ownership is required before action
+
+The reviewer must be able to understand WHY the task exists.
+
+==================================================
+5. OWNERSHIP
+==================================================
+
+Enforce the rule:
+
+NO OWNER
+→ NO ACTION CLOSURE
+
+A task must be owned before a meaningful action can close it.
+
+Do not allow the existing "Record follow-up" path to bypass ownership.
+
+==================================================
+6. ACTION
+==================================================
+
+After ownership and review:
+
+- record the selected human action
+- persist it
+- add the intervention/action to the continuity history
+- update task state correctly
+- create the appropriate follow-up state
+
+==================================================
+7. STRUCTURED FOLLOW-UP
+==================================================
+
+Replace the current loose follow-up label with the existing blueprint's
+intended structured follow-up behaviour where necessary.
+
+Support the outcome states:
+
+- RETURNED_TOWARD_BASELINE
+- PERSISTENT
+- CHANGED_AGAIN
+- UNKNOWN
+
+Do not attempt the full future follow-up system yet.
+
+Implement only enough for this P-02 end-to-end scenario to work correctly.
+
+==================================================
+8. CONTINUITY VIEW
+==================================================
+
+The existing continuity page must reflect the NEW persisted state.
+
+After each major action, the UI should show the updated:
+
+- case event
+- check-in
+- trajectory
+- contextual interpretation
+- uncertainty
+- review state
+- action
+- follow-up
+
+Do not rely on hardcoded fixture values after the workflow has changed.
+
+==================================================
+9. TEST
+==================================================
+
+After implementation, actually run this exact scenario:
+
+P-02
+→ add relevant case event
+→ submit check-in
+→ detector recalculates
+→ atypical/contextual change is produced
+→ review task appears
+→ take ownership
+→ review/decide
+→ record action
+→ create structured follow-up
+→ verify updated continuity history
+
+Verify that refreshing the application does NOT lose the state.
+
+Also verify that the existing seeded scenarios are not accidentally
+broken.
+
+Fix any errors caused by this implementation.
+
+==================================================
+IMPORTANT
+==================================================
+
+Do NOT proceed to:
+- full non-response state machine
+- full simulation overhaul
+- full role enforcement
+- complete audit redesign
+- additional UI features
+
+Those are later tasks.
+
+For this turn, focus exclusively on making the P-02 core workflow
+genuinely persisted and end-to-end.
+
+When finished, report:
+
+1. what was changed
+2. what existing code was reused
+3. what now works end-to-end
+4. any remaining limitation

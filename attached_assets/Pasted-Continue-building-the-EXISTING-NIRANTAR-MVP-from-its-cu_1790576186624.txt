@@ -1,0 +1,84 @@
+Continue building the EXISTING NIRANTAR MVP from its current state.
+
+IMPORTANT:
+Do NOT restart the project.
+Do NOT create a new project.
+Do NOT rewrite working components.
+Do NOT discard existing work.
+Do NOT redesign the product.
+Do NOT add new features beyond the existing MVP specification.
+
+The previous build was intentionally stopped while the MVP was only
+partially complete.
+
+Your task is to RESUME from the current codebase and finish the
+implementation.
+
+First inspect the existing project and determine:
+
+1. What has already been implemented successfully.
+2. What is incomplete.
+3. What is broken.
+4. What the frontend is still waiting for.
+5. Which backend/API/database pieces are already working.
+
+Use these files as the source of truth:
+
+- NIRANTAR_FINAL_PRODUCT_BLUEPRINT.md
+- NIRANTAR_UX_UI_BLUEPRINT.md
+- NIRANTAR_VISUAL_DESIGN_SPEC.md
+- NIRANTAR_MVP_IMPLEMENTATION_PLAN.md
+
+Do NOT rebuild completed functionality simply because you prefer another
+implementation.
+
+Continue specifically from the current implementation state.
+
+PRIORITY ORDER:
+
+1. Finish the existing frontend.
+2. Connect the existing frontend to the existing backend/API.
+3. Complete the core NIRANTAR workflow:
+   CASE EVENT
+   → CHECK-IN
+   → PERSONAL TRAJECTORY
+   → CONTEXTUAL CHANGE
+   → UNCERTAINTY
+   → HUMAN REVIEW
+   → ACTION
+   → FOLLOW-UP
+4. Complete non-response handling.
+5. Ensure the existing synthetic demo data works end-to-end.
+6. Fix integration/type/runtime errors.
+7. Verify navigation and state transitions.
+8. Verify the main demo flow.
+
+Do NOT move to new features until the core existing MVP is complete.
+
+DESIGN:
+Follow the existing UX/UI and visual specifications.
+Do not introduce generic dashboards, random AI features, excessive
+animations, fake AI scores, or unrelated UI.
+
+REALISM:
+Use synthetic data only.
+Do not invent government integrations.
+Do not claim clinical diagnosis or validation.
+Keep the human-in-the-loop model.
+
+VERY IMPORTANT:
+Before making changes, inspect the current code so you continue from
+where the previous Agent session stopped.
+
+After completing the unfinished work, actually run the application and
+verify the primary workflow.
+
+Then report:
+
+- what was already complete
+- what you completed now
+- what you fixed
+- any remaining limitations
+- whether the core NIRANTAR demo now works end-to-end
+
+Do not start another major redesign.
