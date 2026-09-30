@@ -53,9 +53,23 @@ export const ParticipantSummaryLatestClass = {
   SILENCE_REVIEW: 'SILENCE_REVIEW',
 } as const;
 
+export type ParticipantSummaryEnrollmentState = typeof ParticipantSummaryEnrollmentState[keyof typeof ParticipantSummaryEnrollmentState];
+
+
+export const ParticipantSummaryEnrollmentState = {
+  INVITED: 'INVITED',
+  ACTIVE: 'ACTIVE',
+} as const;
+
+export type ParticipantSummaryConsentStatus = typeof ParticipantSummaryConsentStatus[keyof typeof ParticipantSummaryConsentStatus];
+
+
+export const ParticipantSummaryConsentStatus = {
+  PENDING: 'PENDING',
+  GRANTED: 'GRANTED',
+} as const;
+
 export interface ParticipantSummary {
-  enrollmentState: 'INVITED' | 'ACTIVE';
-  consentStatus: 'PENDING' | 'GRANTED';
   id: string;
   pseudonym: string;
   status: string;
@@ -63,8 +77,12 @@ export interface ParticipantSummary {
   latestScore: number;
   lastObservationLabel: string;
   contactRestriction: string;
+  enrollmentState: ParticipantSummaryEnrollmentState;
+  consentStatus: ParticipantSummaryConsentStatus;
   checkinState: string;
   nextCheckinExpectedAt: string;
+  /** @nullable */
+  assignedWorker: string | null;
 }
 
 export type ReviewTaskTaskType = typeof ReviewTaskTaskType[keyof typeof ReviewTaskTaskType];
@@ -105,6 +123,8 @@ export interface ReviewTask {
   pseudonym: string;
   /** @nullable */
   owner: string | null;
+  /** @nullable */
+  assignedWorker: string | null;
   dueLabel: string;
   status: ReviewTaskStatus;
   summary: string;
@@ -128,6 +148,8 @@ export const TaskDecisionInputDecision = {
   ESCALATE: 'ESCALATE',
   LOG_CONTACT: 'LOG_CONTACT',
   PLAN_RETRY: 'PLAN_RETRY',
+  RESOLVE: 'RESOLVE',
+  RETURN: 'RETURN',
 } as const;
 
 export interface TaskDecisionInput {
@@ -207,14 +229,6 @@ export interface CaseEvent {
   dateLabel: string;
 }
 
-export type ActionRecordFollowUpLifecycle = typeof ActionRecordFollowUpLifecycle[keyof typeof ActionRecordFollowUpLifecycle];
-export const ActionRecordFollowUpLifecycle = {
-  PENDING: "PENDING",
-  DUE: "DUE",
-  COMPLETED: "COMPLETED",
-  CLOSED: "CLOSED",
-} as const;
-
 export type ActionRecordFollowUpState = typeof ActionRecordFollowUpState[keyof typeof ActionRecordFollowUpState];
 
 
@@ -226,10 +240,6 @@ export const ActionRecordFollowUpState = {
 } as const;
 
 export interface ActionRecord {
-  createdAt: string;
-  taskId: string;
-  followUpDueAt: string;
-  followUpLifecycle: ActionRecordFollowUpLifecycle;
   id: string;
   pathway: string;
   outcome: string;
@@ -249,7 +259,6 @@ export interface ContinuityView {
 }
 
 export interface CaseEventInput {
-  dateLabel: string;
   /** @minLength 1 */
   label: string;
   eventType: string;
@@ -258,6 +267,7 @@ export interface CaseEventInput {
      * @maximum 3
      */
   significance: number;
+  dateLabel: string;
 }
 
 export interface ActionInput {
@@ -353,4 +363,17 @@ export const ListTasksFilter = {
   mine: 'mine',
   escalated: 'escalated',
 } as const;
+
+export type UpdateParticipantSettingsBodyConsentStatus = typeof UpdateParticipantSettingsBodyConsentStatus[keyof typeof UpdateParticipantSettingsBodyConsentStatus];
+
+
+export const UpdateParticipantSettingsBodyConsentStatus = {
+  PENDING: 'PENDING',
+  GRANTED: 'GRANTED',
+} as const;
+
+export type UpdateParticipantSettingsBody = {
+  consentStatus: UpdateParticipantSettingsBodyConsentStatus;
+  contactRestriction: string;
+};
 

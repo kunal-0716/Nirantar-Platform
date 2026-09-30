@@ -5,6 +5,8 @@
  * NIRANTAR synthetic continuity demo API
  * OpenAPI spec version: 0.1.0
  */
+import type { ParticipantSummaryConsentStatus } from './participantSummaryConsentStatus';
+import type { ParticipantSummaryEnrollmentState } from './participantSummaryEnrollmentState';
 import type { ParticipantSummaryLatestClass } from './participantSummaryLatestClass';
 
 export interface ParticipantSummary {
@@ -15,4 +17,10 @@ export interface ParticipantSummary {
   latestScore: number;
   lastObservationLabel: string;
   contactRestriction: string;
+  enrollmentState: ParticipantSummaryEnrollmentState;
+  consentStatus: ParticipantSummaryConsentStatus;
+  checkinState: string;
+  nextCheckinExpectedAt: string;
+  /** @nullable */
+  assignedWorker: string | null;
 }

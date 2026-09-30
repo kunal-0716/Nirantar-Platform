@@ -18,6 +18,8 @@ export interface ReviewTask {
   pseudonym: string;
   /** @nullable */
   owner: string | null;
+  /** @nullable */
+  assignedWorker: string | null;
   dueLabel: string;
   status: ReviewTaskStatus;
   summary: string;

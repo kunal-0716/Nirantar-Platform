@@ -403,6 +403,7 @@ export function recalculateParticipant(
 }
 
 export function hydrateState(state: NirantarState): NirantarState {
+  state.participants ??= {};
   for (const participant of Object.values(state.participants)) {
     participant.events ??= [];
     participant.timeline ??= [];
@@ -417,6 +418,20 @@ export function hydrateState(state: NirantarState): NirantarState {
       followUpDueLabel: action.followUpDueLabel ?? action.followUpLabel,
       followUpState: action.followUpState ?? "UNKNOWN",
     }));
+    
+    if (participant.summary.assignedWorker === undefined) {
+       participant.summary.assignedWorker = participant.summary.id === "p-01" ? "supervisor-01" :
+                                            participant.summary.id === "p-02" ? "counsellor-01" :
+                                            "liaison-01";
+    }
+  }
+  state.tasks ??= [];
+  for (const task of state.tasks) {
+    if (task.assignedWorker === undefined) {
+       task.assignedWorker = task.participantId === "p-01" ? "supervisor-01" :
+                             task.participantId === "p-02" ? "counsellor-01" :
+                             "liaison-01";
+    }
   }
   state.auditRows ??= [];
   state.auditTampered ??= false;
@@ -502,7 +517,7 @@ export async function getState(): Promise<NirantarState> {
   const rows = await db.select().from(nirantarStateTable).where(eq(nirantarStateTable.id, STATE_ID));
   if (rows[0]) return hydrateState(rows[0].payload as NirantarState);
   const state = initialState();
-  await db.insert(nirantarStateTable).values({ id: STATE_ID, payload: state });
+  await db.insert(nirantarStateTable).values({ id: STATE_ID, payload: state }).onConflictDoNothing();
   return state;
 }
 

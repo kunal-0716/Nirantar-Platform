@@ -15,6 +15,8 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
+import { getState } from "./lib/nirantar";
+
 app.listen(port, (err) => {
   if (err) {
     logger.error({ err }, "Error listening on port");
@@ -22,4 +24,7 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+  
+  // Initialize synthetic state on startup to prevent concurrent DB insert constraints
+  getState().catch((e) => logger.error({ err: e }, "Failed to initialize synthetic state"));
 });

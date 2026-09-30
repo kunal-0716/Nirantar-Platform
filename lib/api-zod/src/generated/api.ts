@@ -50,6 +50,7 @@ export const ListTasksResponseItem = zod.object({
   "participantId": zod.string(),
   "pseudonym": zod.string(),
   "owner": zod.string().nullable(),
+  "assignedWorker": zod.string().nullable(),
   "dueLabel": zod.string(),
   "status": zod.enum(['OPEN', 'OWNED', 'ESCALATED', 'CLOSED']),
   "summary": zod.string(),
@@ -81,6 +82,7 @@ export const TakeTaskOwnershipResponse = zod.object({
   "participantId": zod.string(),
   "pseudonym": zod.string(),
   "owner": zod.string().nullable(),
+  "assignedWorker": zod.string().nullable(),
   "dueLabel": zod.string(),
   "status": zod.enum(['OPEN', 'OWNED', 'ESCALATED', 'CLOSED']),
   "summary": zod.string(),
@@ -109,6 +111,7 @@ export const DecideTaskResponse = zod.object({
   "participantId": zod.string(),
   "pseudonym": zod.string(),
   "owner": zod.string().nullable(),
+  "assignedWorker": zod.string().nullable(),
   "dueLabel": zod.string(),
   "status": zod.enum(['OPEN', 'OWNED', 'ESCALATED', 'CLOSED']),
   "summary": zod.string(),
@@ -127,7 +130,12 @@ export const ListParticipantsResponseItem = zod.object({
   "latestClass": zod.enum(['WITHIN_EXPECTED_RANGE', 'EVENT_CONSISTENT_CHANGE', 'ATYPICAL_CHANGE', 'SILENCE_REVIEW']),
   "latestScore": zod.number().int(),
   "lastObservationLabel": zod.string(),
-  "contactRestriction": zod.string()
+  "contactRestriction": zod.string(),
+  "enrollmentState": zod.enum(['INVITED', 'ACTIVE']),
+  "consentStatus": zod.enum(['PENDING', 'GRANTED']),
+  "checkinState": zod.string(),
+  "nextCheckinExpectedAt": zod.string(),
+  "assignedWorker": zod.string().nullable()
 })
 export const ListParticipantsResponse = zod.array(ListParticipantsResponseItem)
 
@@ -147,7 +155,12 @@ export const GetParticipantContinuityResponse = zod.object({
   "latestClass": zod.enum(['WITHIN_EXPECTED_RANGE', 'EVENT_CONSISTENT_CHANGE', 'ATYPICAL_CHANGE', 'SILENCE_REVIEW']),
   "latestScore": zod.number().int(),
   "lastObservationLabel": zod.string(),
-  "contactRestriction": zod.string()
+  "contactRestriction": zod.string(),
+  "enrollmentState": zod.enum(['INVITED', 'ACTIVE']),
+  "consentStatus": zod.enum(['PENDING', 'GRANTED']),
+  "checkinState": zod.string(),
+  "nextCheckinExpectedAt": zod.string(),
+  "assignedWorker": zod.string().nullable()
 }),
   "trajectory": zod.array(zod.object({
   "label": zod.string(),
@@ -192,6 +205,34 @@ export const GetParticipantContinuityResponse = zod.object({
   "followUpState": zod.enum(['RETURNED_TOWARD_BASELINE', 'PERSISTENT', 'CHANGED_AGAIN', 'UNKNOWN']),
   "dateLabel": zod.string()
 }))
+})
+
+
+/**
+ * @summary Update participant settings and consent
+ */
+export const UpdateParticipantSettingsParams = zod.object({
+  "participantId": zod.coerce.string()
+})
+
+export const UpdateParticipantSettingsBody = zod.object({
+  "consentStatus": zod.enum(['PENDING', 'GRANTED']),
+  "contactRestriction": zod.string()
+})
+
+export const UpdateParticipantSettingsResponse = zod.object({
+  "id": zod.string(),
+  "pseudonym": zod.string(),
+  "status": zod.string(),
+  "latestClass": zod.enum(['WITHIN_EXPECTED_RANGE', 'EVENT_CONSISTENT_CHANGE', 'ATYPICAL_CHANGE', 'SILENCE_REVIEW']),
+  "latestScore": zod.number().int(),
+  "lastObservationLabel": zod.string(),
+  "contactRestriction": zod.string(),
+  "enrollmentState": zod.enum(['INVITED', 'ACTIVE']),
+  "consentStatus": zod.enum(['PENDING', 'GRANTED']),
+  "checkinState": zod.string(),
+  "nextCheckinExpectedAt": zod.string(),
+  "assignedWorker": zod.string().nullable()
 })
 
 

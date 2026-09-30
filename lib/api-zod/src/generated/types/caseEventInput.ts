@@ -7,8 +7,13 @@
  */
 
 export interface CaseEventInput {
+  /** @minLength 1 */
   label: string;
   eventType: string;
+  /**
+     * @minimum 1
+     * @maximum 3
+     */
   significance: number;
   dateLabel: string;
 }
